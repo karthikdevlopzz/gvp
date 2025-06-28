@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Particle Universe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            overflow-x: hidden;
+            cursor: crosshair;
+            transition: background 0.5s ease;
+        }
+
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .character-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 2rem;
+            padding: 0 1rem;
+        }
+
+        .character-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .character-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            background-size: cover;
+            background-position: center;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-initial {
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .character-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .character-card:hover::before {
+            opacity: 1;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .character-card.selected {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #fff;
+            transform: scale(1.05);
+        }
+
+        .character-name {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .character-description {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .dialogue-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #fff;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 500px;
+            z-index: 10;
+            display: none;
+            text-align: center;
+        }
+
+        .dialogue-text {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-family: 'Noto Sans Telugu', sans-serif;
+        }
+
+        .dialogue-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            background-size: cover;
+            background-position: center;
+            border: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 3;
+            font-family: monospace;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .current-character {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 3;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .speak-button {
+            background: #4CAF50;
+            color: white;
+            margin-top: 1rem;
+        }
+
+        .speak-button:hover {
+            background: #45a049;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .character-selection { grid-template-columns: 1fr; }
+            .current-character { display: none; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="content">
+        <h1>Choose Your Character</h1>
+        <div class="character-selection">
+            <div class="character-card" onclick="selectCharacter('lateefa')">
+                <div class="character-avatar" style="background: linear-gradient(135deg, #9b5de5, #f15bb5);">
+                    <span class="avatar-initial">👩</span>
+                </div>
+                <div class="character-name">Lateefa</div>
+                <div class="character-description">Mystical purple particles with starry effects</div>
+            </div>
+            <div class="character-card" onclick="selectCharacter('velumani')">
+                <div class="character-avatar" style="background: linear-gradient(135deg, #ffd700, #ffb700);">
+                    <span class="avatar-initial">👨‍🏫</span>
+                </div>
+                <div class="character-name">OG Velumani</div>
+                <div class="character-description">Golden particles with wisdom aura</div>
+            </div>
+            <div class="character-card" onclick="selectCharacter('tulasi')">
+                <div class="character-avatar" style="background: linear-gradient(135deg, #ff0000, #ff6347);">
+                    <span class="avatar-initial">😈</span>
+                </div>
+                <div class="character-name">Demon Tulasi</div>
+                <div class="character-description">Fiery red particles with explosive power</div>
+            </div>
+            <div class="character-card" onclick="selectCharacter('swathi')">
+                <div class="character-avatar" style="background: linear-gradient(135deg, #4169E1, #87CEEB);">
+                    <span class="avatar-initial">👩‍💼</span>
+                </div>
+                <div class="character-name">Mature Swathi</div>
+                <div class="character-description">Royal blue particles with mature elegance</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialogue-box" id="dialogueBox">
+        <div class="dialogue-avatar" id="dialogueAvatar"></div>
+        <div class="dialogue-text" id="dialogueText"></div>
+        <button class="speak-button" onclick="speakDialogue()">🔊 Speak</button>
+        <button onclick="closeDialogue()">Close</button>
+    </div>
+
+    <div class="stats">
+        <div>Particles: <span id="particleCount">0</span></div>
+        <div>FPS: <span id="fps">60</span></div>
+    </div>
+
+    <div class="current-character" id="currentCharacter" style="display: none;">
+        Current: <span id="characterName">None</span>
+    </div>
+
+    <div class="controls" id="controls" style="display: none;">
+        <button onclick="showDialogue()">Show Dialogue</button>
+        <button onclick="clearParticles()">Clear</button>
+        <button onclick="changeCharacter()">Change Character</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: 0, y: 0 };
+        let currentCharacter = null;
+        let lastTime = 0;
+        let fps = 60;
+
+        // Character configurations
+        const characters = {
+            lateefa: {
+                name: 'Lateefa',
+                background: '#1a0033',
+                colors: ['#9b5de5', '#f15bb5', '#fee77a'],
+                particleCount: 3,
+                speed: 4,
+                size: 6,
+                trail: true,
+                sparkle: true,
+                dialogue: 'Imagine you went to DMart, you buy chocolates',
+                avatarColor: '#9b5de5',
+                avatarGradient: 'linear-gradient(135deg, #9b5de5, #f15bb5)',
+                avatarEmoji: '👩',
+                voiceType: 'female'
+            },
+            velumani: {
+                name: 'OG Velumani',
+                background: '#1a1a00',
+                colors: ['#ffd700', '#ffb700', '#ffa500'],
+                particleCount: 2,
+                speed: 3,
+                size: 8,
+                trail: true,
+                glow: true,
+                dialogue: 'This is not an innovative idea thambi',
+                avatarColor: '#ffd700',
+                avatarGradient: 'linear-gradient(135deg, #ffd700, #ffb700)',
+                avatarEmoji: '👨‍🏫',
+                voiceType: 'male'
+            },
+            tulasi: {
+                name: 'Demon Tulasi',
+                background: '#330000',
+                colors: ['#ff0000', '#ff4500', '#ff6347'],
+                particleCount: 7,
+                speed: 10,
+                size: 3,
+                trail: true,
+                fire: true,
+                dialogue: 'why didnt u come yesterday?i dont care if u have external today..call to ur parents',
+                avatarColor: '#ff0000',
+                avatarGradient: 'linear-gradient(135deg, #ff0000, #ff6347)',
+                avatarEmoji: '😈',
+                voiceType: 'posh-female'
+            },
+            swathi: {
+                name: 'Mature Swathi',
+                background: '#191970',
+                colors: ['#4169E1', '#6495ED', '#87CEEB'],
+                particleCount: 4,
+                speed: 5,
+                size: 6,
+                trail: true,
+                mature: true,
+                dialogue: 'Pillalu',
+                avatarColor: '#4169E1',
+                avatarGradient: 'linear-gradient(135deg, #4169E1, #87CEEB)',
+                avatarEmoji: '👩‍💼',
+                voiceType: 'female'
+            }
+        };
+
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Select character
+        function selectCharacter(character) {
+            currentCharacter = characters[character];
+            document.body.style.background = currentCharacter.background;
+            document.querySelector('.content').style.display = 'none';
+            document.getElementById('controls').style.display = 'flex';
+            document.getElementById('currentCharacter').style.display = 'block';
+            document.getElementById('characterName').textContent = currentCharacter.name;
+            particles = [];
+            
+            // Show dialogue immediately after selection
+            setTimeout(() => showDialogue(), 500);
+        }
+
+        // Show dialogue
+        function showDialogue() {
+            if (!currentCharacter) return;
+            
+            const dialogueBox = document.getElementById('dialogueBox');
+            const dialogueText = document.getElementById('dialogueText');
+            const dialogueAvatar = document.getElementById('dialogueAvatar');
+            
+            dialogueText.innerHTML = currentCharacter.dialogue;
+            dialogueAvatar.style.background = currentCharacter.avatarGradient;
+            dialogueAvatar.innerHTML = currentCharacter.avatarEmoji;
+            dialogueBox.style.display = 'block';
+        }
+
+        // Close dialogue
+        function closeDialogue() {
+            document.getElementById('dialogueBox').style.display = 'none';
+        }
+
+        // Speak dialogue
+        function speakDialogue() {
+            if (!currentCharacter) return;
+            
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                // Get available voices
+                let voices = speechSynthesis.getVoices();
+                
+                // If voices aren't loaded yet, wait and try again
+                if (voices.length === 0) {
+                    speechSynthesis.onvoiceschanged = () => {
+                        voices = speechSynthesis.getVoices();
+                        speak();
+                    };
+                } else {
+                    speak();
+                }
+                
+                function speak() {
+                    const utterance = new SpeechSynthesisUtterance(currentCharacter.dialogue);
+                    
+                    // Find appropriate voices
+                    const femaleVoices = voices.filter(voice => 
+                        voice.lang.includes('en') && (
+                            voice.name.includes('Female') ||
+                            voice.name.includes('female') ||
+                            voice.name.includes('Woman') ||
+                            voice.name.includes('woman') ||
+                            voice.name.includes('Samantha') ||
+                            voice.name.includes('Victoria') ||
+                            voice.name.includes('Kate') ||
+                            voice.name.includes('Karen') ||
+                            voice.name.includes('Moira') ||
+                            voice.name.includes('Tessa') ||
+                            voice.name.includes('Fiona') ||
+                            voice.name.includes('Susan') ||
+                            voice.name.includes('Zira') || // Microsoft female voice
+                            voice.name.includes('Google UK English Female') ||
+                            voice.name.includes('Google US English Female') ||
+                            voice.name.includes('Microsoft Zira') ||
+                            voice.name.includes('Microsoft Hazel')
+                        )
+                    );
+                    
+                    const maleVoices = voices.filter(voice => 
+                        voice.lang.includes('en') && (
+                            voice.name.includes('Male') ||
+                            voice.name.includes('male') ||
+                            voice.name.includes('Man') ||
+                            voice.name.includes('man') ||
+                            voice.name.includes('David') ||
+                            voice.name.includes('Mark') ||
+                            voice.name.includes('Google UK English Male') ||
+                            voice.name.includes('Google US English Male') ||
+                            voice.name.includes('Microsoft David')
+                        )
+                    );
+                    
+                    // Set voice based on character
+                    if (currentCharacter.name === 'OG Velumani') {
+                        // Male voice for Velumani
+                        if (maleVoices.length > 0) {
+                            utterance.voice = maleVoices[0];
+                        }
+                        utterance.pitch = 0.8;
+                        utterance.rate = 0.9;
+                    } else {
+                        // Female voices for all others
+                        if (femaleVoices.length > 0) {
+                            utterance.voice = femaleVoices[0];
+                        } else {
+                            // If no female voice found, use highest pitched available voice
+                            const englishVoices = voices.filter(v => v.lang.includes('en'));
+                            if (englishVoices.length > 0) {
+                                utterance.voice = englishVoices[0];
+                            }
+                        }
+                        
+                        // Adjust pitch and rate for female effect
+                        if (currentCharacter.name === 'Demon Tulasi') {
+                            utterance.pitch = 1.8; // High pitch for female + posh
+                            utterance.rate = 0.85; // Slower for posh effect
+                        } else {
+                            utterance.pitch = 2.0; // Very high pitch to ensure female sound
+                            utterance.rate = 1.1;
+                        }
+                    }
+                    
+                    utterance.lang = 'en-US';
+                    utterance.volume = 1.0;
+                    
+                    // Debug: Show which voice is being used
+                    console.log('Using voice:', utterance.voice ? utterance.voice.name : 'Default');
+                    console.log('Pitch:', utterance.pitch);
+                    
+                    speechSynthesis.speak(utterance);
+                }
+            } else {
+                alert('Speech synthesis not supported in your browser');
+            }
+        }
+
+        // Change character
+        function changeCharacter() {
+            currentCharacter = null;
+            document.querySelector('.content').style.display = 'flex';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('currentCharacter').style.display = 'none';
+            document.getElementById('dialogueBox').style.display = 'none';
+            document.body.style.background = '#0a0a0a';
+            particles = [];
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y, char) {
+                this.x = x;
+                this.y = y;
+                this.char = char;
+                this.size = Math.random() * char.size + 2;
+                this.speedX = (Math.random() - 0.5) * char.speed;
+                this.speedY = (Math.random() - 0.5) * char.speed;
+                this.color = char.colors[Math.floor(Math.random() * char.colors.length)];
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+                
+                // Special effects
+                if (char.fire) {
+                    this.speedY = -Math.abs(this.speedY) - 2;
+                }
+                if (char.mature) {
+                    this.rotation = Math.random() * Math.PI * 2;
+                }
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                
+                if (this.char.fire) {
+                    this.speedX *= 0.98;
+                    this.speedY *= 0.98;
+                }
+                
+                if (this.char.mature) {
+                    this.rotation += 0.05;
+                    this.x += Math.cos(this.rotation) * 0.5;
+                    this.y += Math.sin(this.rotation) * 0.3;
+                }
+                
+                if (this.size > 0.2) this.size -= 0.05;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                
+                if (this.char.glow) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = this.color;
+                }
+                
+                if (this.char.sparkle && Math.random() > 0.9) {
+                    ctx.fillStyle = '#ffffff';
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                
+                if (this.char.mature) {
+                    // Create elegant swirl effect
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+            
+            if (currentCharacter) {
+                for (let i = 0; i < currentCharacter.particleCount; i++) {
+                    particles.push(new Particle(mouse.x, mouse.y, currentCharacter));
+                }
+            }
+        });
+
+        // Touch events for mobile
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            mouse.x = touch.clientX;
+            mouse.y = touch.clientY;
+            
+            if (currentCharacter) {
+                for (let i = 0; i < currentCharacter.particleCount; i++) {
+                    particles.push(new Particle(mouse.x, mouse.y, currentCharacter));
+                }
+            }
+        });
+
+        // Clear particles
+        function clearParticles() {
+            particles = [];
+        }
+
+        // Animation loop
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            fps = Math.round(1000 / deltaTime);
+            lastTime = currentTime;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particles = particles.filter(particle => {
+                particle.update();
+                particle.draw();
+                return particle.life > 0;
+            });
+            
+            document.getElementById('particleCount').textContent = particles.length;
+            document.getElementById('fps').textContent = fps;
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate(0);
+    </script>
+</body>
+</html>
